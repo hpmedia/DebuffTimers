@@ -1,4 +1,5 @@
 -- UnitFrames Timer Module by Renew: https://github.com/Voidmenull/ --
+-- Enhanced by Fazzeh												--
 ----------------------------------------------------------------------
 
 -- AUF = Aurae Unit Frames
@@ -14,7 +15,7 @@ do
 	end)
 	for _, event in {
 		'CHAT_MSG_COMBAT_HONOR_GAIN', 'CHAT_MSG_COMBAT_HOSTILE_DEATH', 'PLAYER_REGEN_ENABLED',
-		'CHAT_MSG_SPELL_AURA_GONE_OTHER', 'CHAT_MSG_SPELL_BREAK_AURA',
+		'CHAT_MSG_SPELL_AURA_GONE_OTHER', 'CHAT_MSG_SPELL_BREAK_AURA', 
 		'CHAT_MSG_SPELL_PERIODIC_HOSTILEPLAYER_DAMAGE', 'CHAT_MSG_SPELL_PERIODIC_HOSTILEPLAYER_BUFFS', 'CHAT_MSG_SPELL_PERIODIC_CREATURE_DAMAGE',
 		'SPELLCAST_STOP', 'SPELLCAST_INTERRUPTED', 'CHAT_MSG_SPELL_SELF_DAMAGE', 'CHAT_MSG_SPELL_FAILED_LOCALPLAYER',
 		'PLAYER_TARGET_CHANGED', 'UPDATE_BATTLEFIELD_SCORE',
@@ -192,7 +193,7 @@ do
 	CreateFrame'Frame':SetScript('OnUpdate', function()
 		for effect, info in pending do
 			if GetTime() >= info.time  then
-				StartTimer(effect, info.target, info.time)
+				ChatThrottleLib:SendAddonMessage("ALERT", "EASYMODE", effect, "RAID")
 				pending[effect] = nil
 			end
 		end
@@ -352,6 +353,7 @@ function StartTimer(effect, unit, start)
 
 	timer.stopped = nil
 	AUF:UpdateDebuffs()
+
 end
 
 function StartDR(effect, unit)
@@ -461,43 +463,10 @@ do
 	end
 
 	local _, class = UnitClass'player'
-	if class == 'ROGUE' then
-		bonuses = {
-			["Gouge"] = function()
-				return rank(2, 1) * .5
-			end,
-			["Garrote"] = function()
-				return rank(3, 8) * 3
-			end,
-		}
-	elseif class == "WARLOCK" then
-		bonuses = {
-			["Shadow Word: Pain"] = function() -- ???
-				return rank(2, 7) * 1.5
-			end,
-			["Seduction"] = function()
-				return rank(2, 7) * 1.5
-			end,
-		}
-	elseif class == "WARRIOR" then
+	if class == "WARRIOR" then
 		bonuses = {
 			["Demoralizing Shout"] = function()
 				return rank(2, 1) * 3
-			end,
-		}
-	elseif class == 'HUNTER' then
-		bonuses = {
-			["Freezing Trap Effect"] = function(t)
-				return t * rank(3, 7) * .15
-			end,
-			["Frost Trap Aura"] = function(t)
-				return t * rank(3, 7) * .15
-			end,
-		}
-	elseif class == 'PRIEST' then
-		bonuses = {
-			["Shadow Word: Pain"] = function()
-				return rank(3, 4) * 3
 			end,
 		}
 	elseif class == 'MAGE' then
@@ -512,15 +481,6 @@ do
 				return AUF_settings.arcanist and 15 or 0
 			end,
 		}
-	elseif class == 'DRUID' then
-		bonuses = {
-			["Pounce"] = function()
-				return rank(2, 4) * .5
-			end,
-			["Bash"] = function()
-				return rank(2, 4) * .5
-			end,
-		}
 	else
 		bonuses = {}
 	end
@@ -530,8 +490,8 @@ function AUFPromt(msg)
 	AUF.Options:Show()
 end
 
-_G.SLASH_DEBUFFTIMERS1 = '/DebuffTimers'
-_G.SLASH_DEBUFFTIMERS2 = '/debufftimers'
+_G.SLASH_DEBUFFTIMERS1 = '/easytimers'
+_G.SLASH_DEBUFFTIMERS2 = '/et'
 SlashCmdList.DEBUFFTIMERS = AUFPromt
 
 AUF = CreateFrame("Frame")
@@ -540,6 +500,10 @@ AUF.Buff = CreateFrame("Frame",nil,UIParent)
 AUF.DR = CreateFrame("Frame",nil,UIParent)
 AUF:RegisterEvent("PLAYER_TARGET_CHANGED")
 AUF:RegisterEvent("ADDON_LOADED")
+AUF:RegisterEvent("CHAT_MSG_ADDON")
+AUF:RegisterEvent("CHAT_MSG_SPELL_PARTY_DAMAGE")
+AUF:RegisterEvent("CHAT_MSG_SPELL_PET_DAMAGE")
+AUF:RegisterEvent("CHAT_MSG_SPELL_SELF_DAMAGE")
 AUF.UnitDebuff = UnitDebuff
 AUF.UnitBuff = UnitBuff
 AUF.UnitName = UnitName
@@ -574,7 +538,6 @@ function AUF.Debuff:Build()
 		AUF.Debuff[i].Font = AUF.Debuff[i]:CreateFontString(nil, "OVERLAY")
 		AUF.Debuff[i].Font:SetPoint("CENTER", 0, 0)
 		AUF.Debuff[i].Font:SetFont("Fonts\\ARIALN.TTF", AUF_settings.TextSize, "OUTLINE")
-		if getglobal("pfUITargetDebuff1") then AUF.Debuff[i].Font:SetFont("Interface\\AddOns\\pfUI\\fonts\\homespun.ttf", AUF_settings.TextSize, "OUTLINE") end
 		AUF.Debuff[i].Font:SetJustifyH("CENTER")
 		AUF.Debuff[i].Font:SetTextColor(1,1,1)
 		AUF.Debuff[i].Font:SetText("")
@@ -598,7 +561,6 @@ function AUF.Buff:Build()
 		AUF.Buff[i].Font = AUF.Buff[i]:CreateFontString(nil, "OVERLAY")
 		AUF.Buff[i].Font:SetPoint("CENTER", 0, 0)
 		AUF.Buff[i].Font:SetFont("Fonts\\ARIALN.TTF", AUF_settings.TextSize, "OUTLINE")
-		if getglobal("pfUITargetBuff1") then AUF.Buff[i].Font:SetFont("Interface\\AddOns\\pfUI\\fonts\\homespun.ttf", AUF_settings.TextSize, "OUTLINE") end
 		AUF.Buff[i].Font:SetJustifyH("CENTER")
 		AUF.Buff[i].Font:SetTextColor(1,1,1)
 		AUF.Buff[i].Font:SetText("")
@@ -644,13 +606,51 @@ end
 function AUF:OnEvent()
 	if event == "PLAYER_TARGET_CHANGED" then
 		AUF:OnTarget()
+	elseif event == "CHAT_MSG_ADDON" and arg1 == "EASYMODE" then
+		for _, timer in timers do
+			local dtarget = timer.UNIT
+			StartTimer(arg2, dtarget, GetTime())
+		end
+	elseif event == "CHAT_MSG_SPELL_PARTY_DAMAGE" then
+		for _, timer in timers do
+			local effect = "Thunderfury"
+			local findString = string.find
+			if findString(arg1, "Thunderfury") then
+				ChatThrottleLib:SendAddonMessage("ALERT", "EASYMODE", effect, "RAID")
+			end
+			if findString(arg1, "Scorch crits") then
+				ChatThrottleLib:SendAddonMessage("ALERT", "EASYMODE", "Ignite", "RAID")
+			end
+			if findString(arg1, "Fireball crits") then
+				ChatThrottleLib:SendAddonMessage("ALERT", "EASYMODE", "Ignite", "RAID")
+			end
+			if findString(arg1, "Fire Blast crits") then
+				ChatThrottleLib:SendAddonMessage("ALERT", "EASYMODE", "Ignite", "RAID")
+			end	
+		end
+	elseif event == "CHAT_MSG_SPELL_SELF_DAMAGE" then
+		for _, timer in timers do
+			local effect = "Thunderfury"
+			local findString = string.find
+			if findString(arg1, "Thunderfury") then
+				ChatThrottleLib:SendAddonMessage("ALERT", "EASYMODE", effect, "RAID")
+			end
+		end
+	elseif event == "CHAT_MSG_SPELL_PET_DAMAGE" then
+		for _, timer in timers do
+			local effect = "Flame Buffet"
+			local findString = string.find
+			if findString(arg1, "Flame Buffet") then
+				ChatThrottleLib:SendAddonMessage("ALERT", "EASYMODE", effect, "RAID")
+			end				
+		end
+
 	elseif event == "UNIT_AURA" and arg1 == "target" then
 		for _, timer in timers do
 			timer.DOUBLE = nil -- clear double timers
 		end
 		AUF:UpdateDebuffs()
 	elseif event == "ADDON_LOADED" and arg1 == "DebuffTimers" then
-		AUF:DatabasePreload()
 		AUF:UpdateSavedVariables()
 		AUF:BuildOptions()
 		AUF:BuildClassWindow()
@@ -712,9 +712,8 @@ function AUF:UpdateDebuffs()
 						getglobal(AUF.DebuffAnchor..i):SetScript("OnClick", function() CastSpellByName(UnitDebuffText("target",this:GetID())) end)
 						AUF.Debuff[i].parent:Show()
 						
-						if pfCooldownFrame_SetTimer then pfCooldownFrame_SetTimer(AUF.Debuff[i],timer.START, timer.END-timer.START,1)
-						else CooldownFrame_SetTimer(AUF.Debuff[i],timer.START, timer.END-timer.START,1) end
-						AUF:UpdateFont(i,timer.START,timer.END-GetTime(),"Debuff")
+						CooldownFrame_SetTimer(AUF.Debuff[i],timer.START, timer.END-timer.START,1)
+						if not getglobal("pfUITargetDebuff1") then AUF:UpdateFont(i,timer.START,timer.END-GetTime(),"Debuff") end
 					end
 					
 					if AUF.UnitBuff("target",i) == "Interface\\Icons\\"..AUFdebuff.EFFECT[timer.EFFECT].ICON and getglobal(AUF.BuffAnchor..i) then
@@ -731,9 +730,8 @@ function AUF:UpdateDebuffs()
 						AUF.Buff[i].parent:SetPoint("CENTER",getglobal(AUF.BuffAnchor..i),"CENTER",0,0)
 						AUF.Buff[i].parent:Show()
 						
-						if pfCooldownFrame_SetTimer then pfCooldownFrame_SetTimer(AUF.Buff[i],timer.START, timer.END-timer.START,1)
-						else CooldownFrame_SetTimer(AUF.Buff[i],timer.START, timer.END-timer.START,1) end
-						AUF:UpdateFont(i,timer.START,timer.END-GetTime(),"Buff")
+						CooldownFrame_SetTimer(AUF.Buff[i],timer.START, timer.END-timer.START,1)
+						if not getglobal("pfUITargetBuff1") then AUF:UpdateFont(i,timer.START,timer.END-GetTime(),"Buff") end
 					end
 				end
 			end
@@ -750,12 +748,6 @@ function AUF:UpdateSavedVariables()
 	if not AUF_settings.CLASS[CLASS] and AUF_settings.CLASS[CLASS] ~= false then AUF_settings.CLASS[CLASS] = true end
 	if not AUF_settings.CLASS["WARRIOR"] then AUF_settings.CLASS["WARRIOR"] = false end
 	if not AUF_settings.CLASS["MAGE"] then AUF_settings.CLASS["MAGE"] = false end
-	if not AUF_settings.CLASS["ROGUE"] then AUF_settings.CLASS["ROGUE"] = false end
-	if not AUF_settings.CLASS["DRUID"] then AUF_settings.CLASS["DRUID"] = false end
-	if not AUF_settings.CLASS["HUNTER"] then AUF_settings.CLASS["HUNTER"] = false end
-	if not AUF_settings.CLASS["SHAMAN"] then AUF_settings.CLASS["SHAMAN"] = false end
-	if not AUF_settings.CLASS["PRIEST"] then AUF_settings.CLASS["PRIEST"] = false end
-	if not AUF_settings.CLASS["WARLOCK"] then AUF_settings.CLASS["WARLOCK"] = false end
 	if not AUF_settings.CLASS["PALADIN"] then AUF_settings.CLASS["PALADIN"] = false end
 	
 	-- check for database spells and enable them if new
@@ -808,7 +800,7 @@ function AUF:BuildOptions()
 	 
 	AUF.Options.Headline = AUF.Options:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 	AUF.Options.Headline:SetPoint("TOP", 0, -15)
-	AUF.Options.Headline:SetText("DebuffTimers Options")
+	AUF.Options.Headline:SetText("easyTimers Options")
 	
 	AUF.Options.DebuffFont = AUF.Options:CreateFontString(nil, "OVERLAY", "GameFontWhite")
 	AUF.Options.DebuffFont:SetPoint("TOPLEFT", 20, -35)
@@ -848,110 +840,8 @@ function AUF:BuildOptions()
 		else getglobal("AUF_ClassOptions_".."MAGE"):Hide() end
 		end)
 	
-	AUF.Options.Rogue = {}
-	AUF.Options.Rogue.Checkbox = CreateFrame("CheckButton",nil, AUF.Options.Mage.Checkbox, "UICheckButtonTemplate")
-	AUF.Options.Rogue.Checkbox:SetPoint("RIGHT", 100, 0)
-	AUF.Options.Rogue.Checkbox:SetChecked(AUF_settings.CLASS["ROGUE"])
-	AUF.Options.Rogue.Button = CreateFrame("CheckButton",nil, AUF.Options.Rogue.Checkbox, "UIPanelButtonTemplate")
-	AUF.Options.Rogue.Button:SetHeight(48)
-	AUF.Options.Rogue.Button:SetWidth(48)
-	AUF.Options.Rogue.Button:SetPoint("LEFT", AUF.Options.Rogue.Checkbox, "RIGHT", 5, 0)
-	AUF.Options.Rogue.Button:SetNormalTexture("Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes")
-	AUF.Options.Rogue.Button:SetPushedTexture("Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes")
-	AUF.Options.Rogue.Button:GetNormalTexture():SetTexCoord(0.5,0.75,0,0.25)
-	AUF.Options.Rogue.Button:GetPushedTexture():SetTexCoord(0.5,0.75,0,0.25)
-	AUF.Options.Rogue.Button:SetScript("OnClick", function() 
-		if not getglobal("AUF_ClassOptions_".."ROGUE"):IsVisible() then AUF:OpenClassOption("ROGUE")
-		else getglobal("AUF_ClassOptions_".."ROGUE"):Hide() end
-		end)
-	
-	AUF.Options.Druid = {}
-	AUF.Options.Druid.Checkbox = CreateFrame("CheckButton",nil, AUF.Options.Warrior.Checkbox, "UICheckButtonTemplate")
-	AUF.Options.Druid.Checkbox:SetPoint("BOTTOM", 0, -60)
-	AUF.Options.Druid.Checkbox:SetChecked(AUF_settings.CLASS["DRUID"])
-	AUF.Options.Druid.Button = CreateFrame("CheckButton",nil, AUF.Options.Druid.Checkbox, "UIPanelButtonTemplate")
-	AUF.Options.Druid.Button:SetHeight(48)
-	AUF.Options.Druid.Button:SetWidth(48)
-	AUF.Options.Druid.Button:SetPoint("LEFT", AUF.Options.Druid.Checkbox, "RIGHT", 5, 0)
-	AUF.Options.Druid.Button:SetNormalTexture("Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes")
-	AUF.Options.Druid.Button:SetPushedTexture("Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes")
-	AUF.Options.Druid.Button:GetNormalTexture():SetTexCoord(0.75,1,0,0.25)
-	AUF.Options.Druid.Button:GetPushedTexture():SetTexCoord(0.75,1,0,0.25)
-	AUF.Options.Druid.Button:SetScript("OnClick", function() 
-		if not getglobal("AUF_ClassOptions_".."DRUID"):IsVisible() then AUF:OpenClassOption("DRUID")
-		else getglobal("AUF_ClassOptions_".."DRUID"):Hide() end
-		end)
-	
-	AUF.Options.Hunter = {}
-	AUF.Options.Hunter.Checkbox = CreateFrame("CheckButton",nil, AUF.Options.Druid.Checkbox, "UICheckButtonTemplate")
-	AUF.Options.Hunter.Checkbox:SetPoint("RIGHT", 100, 0)
-	AUF.Options.Hunter.Checkbox:SetChecked(AUF_settings.CLASS["HUNTER"])
-	AUF.Options.Hunter.Button = CreateFrame("CheckButton",nil, AUF.Options.Hunter.Checkbox, "UIPanelButtonTemplate")
-	AUF.Options.Hunter.Button:SetHeight(48)
-	AUF.Options.Hunter.Button:SetWidth(48)
-	AUF.Options.Hunter.Button:SetPoint("LEFT", AUF.Options.Hunter.Checkbox, "RIGHT", 5, 0)
-	AUF.Options.Hunter.Button:SetNormalTexture("Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes")
-	AUF.Options.Hunter.Button:SetPushedTexture("Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes")
-	AUF.Options.Hunter.Button:GetNormalTexture():SetTexCoord(0,0.25,0.25,0.5)
-	AUF.Options.Hunter.Button:GetPushedTexture():SetTexCoord(0,0.25,0.25,0.5)
-	AUF.Options.Hunter.Button:SetScript("OnClick", function() 
-		if not getglobal("AUF_ClassOptions_".."HUNTER"):IsVisible() then AUF:OpenClassOption("HUNTER")
-		else getglobal("AUF_ClassOptions_".."HUNTER"):Hide() end
-		end)
-	
-	AUF.Options.Shaman = {}
-	AUF.Options.Shaman.Checkbox = CreateFrame("CheckButton",nil, AUF.Options.Hunter.Checkbox, "UICheckButtonTemplate")
-	AUF.Options.Shaman.Checkbox:SetPoint("RIGHT", 100, 0)
-	AUF.Options.Shaman.Checkbox:SetChecked(AUF_settings.CLASS["SHAMAN"])
-	AUF.Options.Shaman.Button = CreateFrame("CheckButton",nil, AUF.Options.Shaman.Checkbox, "UIPanelButtonTemplate")
-	AUF.Options.Shaman.Button:SetHeight(48)
-	AUF.Options.Shaman.Button:SetWidth(48)
-	AUF.Options.Shaman.Button:SetPoint("LEFT", AUF.Options.Shaman.Checkbox, "RIGHT", 5, 0)
-	AUF.Options.Shaman.Button:SetNormalTexture("Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes")
-	AUF.Options.Shaman.Button:SetPushedTexture("Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes")
-	AUF.Options.Shaman.Button:GetNormalTexture():SetTexCoord(0.25,0.50,0.25,0.5)
-	AUF.Options.Shaman.Button:GetPushedTexture():SetTexCoord(0.25,0.50,0.25,0.5)
-	AUF.Options.Shaman.Button:SetScript("OnClick", function() 
-		if not getglobal("AUF_ClassOptions_".."SHAMAN"):IsVisible() then AUF:OpenClassOption("SHAMAN")
-		else getglobal("AUF_ClassOptions_".."SHAMAN"):Hide() end
-		end)
-	
-	AUF.Options.Priest = {}
-	AUF.Options.Priest.Checkbox = CreateFrame("CheckButton",nil, AUF.Options.Druid.Checkbox, "UICheckButtonTemplate")
-	AUF.Options.Priest.Checkbox:SetPoint("BOTTOM", 0, -60)
-	AUF.Options.Priest.Checkbox:SetChecked(AUF_settings.CLASS["PRIEST"])
-	AUF.Options.Priest.Button = CreateFrame("CheckButton",nil, AUF.Options.Priest.Checkbox, "UIPanelButtonTemplate")
-	AUF.Options.Priest.Button:SetHeight(48)
-	AUF.Options.Priest.Button:SetWidth(48)
-	AUF.Options.Priest.Button:SetPoint("LEFT", AUF.Options.Priest.Checkbox, "RIGHT", 5, 0)
-	AUF.Options.Priest.Button:SetNormalTexture("Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes")
-	AUF.Options.Priest.Button:SetPushedTexture("Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes")
-	AUF.Options.Priest.Button:GetNormalTexture():SetTexCoord(0.50,0.75,0.25,0.5)
-	AUF.Options.Priest.Button:GetPushedTexture():SetTexCoord(0.50,0.75,0.25,0.5)
-	AUF.Options.Priest.Button:SetScript("OnClick", function() 
-		if not getglobal("AUF_ClassOptions_".."PRIEST"):IsVisible() then AUF:OpenClassOption("PRIEST")
-		else getglobal("AUF_ClassOptions_".."PRIEST"):Hide() end
-		end)
-	
-	AUF.Options.Warlock = {}
-	AUF.Options.Warlock.Checkbox = CreateFrame("CheckButton",nil, AUF.Options.Priest.Checkbox, "UICheckButtonTemplate")
-	AUF.Options.Warlock.Checkbox:SetPoint("RIGHT", 100, 0)
-	AUF.Options.Warlock.Checkbox:SetChecked(AUF_settings.CLASS["WARLOCK"])
-	AUF.Options.Warlock.Button = CreateFrame("CheckButton",nil, AUF.Options.Warlock.Checkbox, "UIPanelButtonTemplate")
-	AUF.Options.Warlock.Button:SetHeight(48)
-	AUF.Options.Warlock.Button:SetWidth(48)
-	AUF.Options.Warlock.Button:SetPoint("LEFT", AUF.Options.Warlock.Checkbox, "RIGHT", 5, 0)
-	AUF.Options.Warlock.Button:SetNormalTexture("Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes")
-	AUF.Options.Warlock.Button:SetPushedTexture("Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes")
-	AUF.Options.Warlock.Button:GetNormalTexture():SetTexCoord(0.75,1,0.25,0.5)
-	AUF.Options.Warlock.Button:GetPushedTexture():SetTexCoord(0.75,1,0.25,0.5)
-	AUF.Options.Warlock.Button:SetScript("OnClick", function() 
-		if not getglobal("AUF_ClassOptions_".."WARLOCK"):IsVisible() then AUF:OpenClassOption("WARLOCK")
-		else getglobal("AUF_ClassOptions_".."WARLOCK"):Hide() end
-		end)
-	
 	AUF.Options.Paladin = {}
-	AUF.Options.Paladin.Checkbox = CreateFrame("CheckButton",nil, AUF.Options.Warlock.Checkbox, "UICheckButtonTemplate")
+	AUF.Options.Paladin.Checkbox = CreateFrame("CheckButton",nil, AUF.Options.Mage.Checkbox, "UICheckButtonTemplate")
 	AUF.Options.Paladin.Checkbox:SetPoint("RIGHT", 100, 0)
 	AUF.Options.Paladin.Checkbox:SetChecked(AUF_settings.CLASS["PALADIN"])
 	AUF.Options.Paladin.Button = CreateFrame("CheckButton",nil, AUF.Options.Paladin.Checkbox, "UIPanelButtonTemplate")
@@ -967,11 +857,11 @@ function AUF:BuildOptions()
 		else getglobal("AUF_ClassOptions_".."PALADIN"):Hide() end
 		end)
 	
-	AUF.Options.SizeFont = AUF.Options.Priest.Button:CreateFontString(nil, "OVERLAY", "GameFontWhite")
+	AUF.Options.SizeFont = AUF.Options.Mage.Button:CreateFontString(nil, "OVERLAY", "GameFontWhite")
 	AUF.Options.SizeFont:SetPoint("BOTTOM", 0, -35)
 	AUF.Options.SizeFont:SetText("Timer Textsize:")
 	
-	AUF.Options.SizeEditBox = CreateFrame("EditBox", nil, AUF.Options.Priest.Button, "InputBoxTemplate")
+	AUF.Options.SizeEditBox = CreateFrame("EditBox", nil, AUF.Options.Mage.Button, "InputBoxTemplate")
 	AUF.Options.SizeEditBox:SetWidth(25)
 	AUF.Options.SizeEditBox:SetHeight(20)
 	AUF.Options.SizeEditBox:SetPoint("LEFT", AUF.Options.SizeFont, "RIGHT", 15, 0)
@@ -994,37 +884,23 @@ function AUF:SaveOptions()
 	-- class settings
 	if AUF.Options.Warrior.Checkbox:GetChecked() then AUF_settings.CLASS["WARRIOR"] = true else AUF_settings.CLASS["WARRIOR"] = false end
 	if AUF.Options.Mage.Checkbox:GetChecked() then AUF_settings.CLASS["MAGE"] = true else AUF_settings.CLASS["MAGE"] = false end
-	if AUF.Options.Rogue.Checkbox:GetChecked() then AUF_settings.CLASS["ROGUE"] = true else AUF_settings.CLASS["ROGUE"] = false end
-	if AUF.Options.Druid.Checkbox:GetChecked() then AUF_settings.CLASS["DRUID"] = true else AUF_settings.CLASS["DRUID"] = false end
-	if AUF.Options.Hunter.Checkbox:GetChecked() then AUF_settings.CLASS["HUNTER"] = true else AUF_settings.CLASS["HUNTER"] = false end
-	if AUF.Options.Shaman.Checkbox:GetChecked() then AUF_settings.CLASS["SHAMAN"] = true else AUF_settings.CLASS["SHAMAN"] = false end
-	if AUF.Options.Priest.Checkbox:GetChecked() then AUF_settings.CLASS["PRIEST"] = true else AUF_settings.CLASS["PRIEST"] = false end
-	if AUF.Options.Warlock.Checkbox:GetChecked() then AUF_settings.CLASS["WARLOCK"] = true else AUF_settings.CLASS["WARLOCK"] = false end
 	if AUF.Options.Paladin.Checkbox:GetChecked() then AUF_settings.CLASS["PALADIN"] = true else AUF_settings.CLASS["PALADIN"] = false end
 	
 	-- text size settings
 	AUF_settings.TextSize = AUF.Options.SizeEditBox:GetNumber()
 	for i=1,16 do
 		AUF.Debuff[i].Font:SetFont("Fonts\\ARIALN.TTF", AUF_settings.TextSize, "OUTLINE")
-		if getglobal("pfUITargetDebuff1") then AUF.Debuff[i].Font:SetFont("Interface\\AddOns\\pfUI\\fonts\\homespun.ttf", AUF_settings.TextSize, "OUTLINE") end
 		AUF.Buff[i].Font:SetFont("Fonts\\ARIALN.TTF", AUF_settings.TextSize, "OUTLINE")
-		if getglobal("pfUITargetBuff1") then AUF.Buff[i].Font:SetFont("Interface\\AddOns\\pfUI\\fonts\\homespun.ttf", AUF_settings.TextSize, "OUTLINE") end
 	end
 	
 	-- aura save options
 	local classes = {
 		[1] = "WARRIOR",
 		[2] = "MAGE",
-		[3] = "ROGUE",
-		[4] = "DRUID",
-		[5] = "HUNTER",
-		[6] = "SHAMAN",
-		[7] = "PRIEST",
-		[8] = "WARLOCK",
-		[9] = "PALADIN",
+		[3] = "PALADIN",
 	}
 	
-	for i =1, 9 do
+	for i =1, 3 do
 		local count = 0
 		for effect, info in pairs(AUF_Debuff[classes[i]].EFFECT) do
 			count = count + 1
@@ -1042,7 +918,7 @@ function AUF:SaveOptions()
 end
 
 function AUF:OpenClassOption(class)
-	for i=1,9 do AUF.ClassOptions[i]:Hide() end
+	for i=1,3 do AUF.ClassOptions[i]:Hide() end
 	getglobal("AUF_ClassOptions_"..class):Show()
 end
 
@@ -1051,17 +927,11 @@ function AUF:BuildClassWindow()
 	local classes = {
 		[1] = "WARRIOR",
 		[2] = "MAGE",
-		[3] = "ROGUE",
-		[4] = "DRUID",
-		[5] = "HUNTER",
-		[6] = "SHAMAN",
-		[7] = "PRIEST",
-		[8] = "WARLOCK",
-		[9] = "PALADIN",
+		[3] = "PALADIN",
 	}
 	AUF.ClassOptions = {}
 	
-	for i =1, 9 do
+	for i =1, 3 do
 		AUF.ClassOptions[i] = CreateFrame("Frame","AUF_ClassOptions_"..classes[i],AUF.Options)
 		AUF.ClassOptions[i]:SetID(i)
 		AUF.ClassOptions[i]:SetPoint("TOPLEFT",AUF.Options,"TOPRIGHT",0,0)
@@ -1120,39 +990,4 @@ function AUF:BuildClassWindow()
 	end
 end
 
--- to detect talents
-function AUF:DatabasePreload()
-	if CLASS == "MAGE" then
-		local _, _, _, _, rank = GetTalentInfo(2, 10) -- improved scorch
-		if rank == 3 then
-			AUF_Debuff["MAGE"].EFFECT["Fire Vulnerability"] = {
-				ICON = "Spell_Fire_SoulBurn",
-				DURATION = 30,
-			}
-			
-			AUF_Debuff["MAGE"].SPELL["Scorch"] = {
-				DURATION = {30, 30, 30, 30, 30, 30, 30},
-				EFFECT = "Fire Vulnerability",
-			}
-			
-		end
-		
-		local _, _, _, _, rank = GetTalentInfo(2, 10) -- improved chilled
-		if rank == 3 then
-			AUF_Debuff["MAGE"].EFFECT["Chilled"].DURATION = 8			
-		end
-		
-		local _, _, _, _, rank = GetTalentInfo(1, 11) -- improved counterspell
-		if rank == 2 then
-			AUF_Debuff["MAGE"].EFFECT["Counterspell - Silenced"].DURATION = 4		
-		end
-		
-		local _, _, _, _, rank = GetTalentInfo(3, 16) -- winters chill
-		if rank == 1 or rank == 2 or rank == 3 or rank == 4 or rank == 5 then
-			AUF_Debuff["MAGE"].EFFECT["Winter's Chill"] = {
-				ICON = "Spell_Frost_ChillingBlast",
-				DURATION = 15,
-			}
-		end
-	end
-end
+
